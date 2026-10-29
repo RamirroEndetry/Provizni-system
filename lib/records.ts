@@ -1,0 +1,10 @@
+import { z } from 'zod';
+export const categories = ['Pronájem','Prodej','Prodej 1–3 ks','Prodej 4 a více','Prodej panelů','Prodej LED + ostatní','Software','Barter','Náhradní plnění','Ostatní'];
+export const statuses = ['Evidováno','Poptávka','Potvrzeno','Dokončeno','Uhrazeno','Storno'];
+const day = z.string().refine(v => !v || /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)), 'Neplatné datum');
+export const recordSchema = z.object({id:z.string().min(1).max(150),company:z.string().trim().min(1).max(250),category:z.enum(categories as [string,...string[]]),date:day,period:z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),eventDate:day,returnDate:day,amount:z.number().finite().min(-1e9).max(1e9),transport:z.number().finite().min(0).max(1e9),installation:z.number().finite().min(0).max(1e9),rate:z.number().min(0).max(100),fixedCommission:z.number().finite().min(-1e9).max(1e9).nullable(),status:z.enum(statuses as [string,...string[]]),number:z.string().max(100),description:z.string().max(2000),notes:z.string().max(5000),source:z.string().max(250),review:z.boolean(),revision:z.number().int().min(0),attachment:z.string().max(300),attachmentName:z.string().max(250)});
+export type RecordItem=z.infer<typeof recordSchema>;
+export const money=(n:number)=>new Intl.NumberFormat('cs-CZ',{style:'currency',currency:'CZK',maximumFractionDigits:2}).format(n);
+export const commission=(r:RecordItem)=>r.fixedCommission ?? Math.round(r.amount*r.rate)/100;
+export const isRevenue=(r:RecordItem)=>!['Barter','Náhradní plnění','Ostatní'].includes(r.category)&&r.status!=='Storno';
+export function blank():RecordItem {const date=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Prague'}).format(new Date());return {id:crypto.randomUUID(),company:'',category:'Pronájem',date,period:date.slice(0,7),eventDate:'',returnDate:'',amount:0,transport:0,installation:0,rate:10,fixedCommission:null,status:'Evidováno',number:'',description:'',notes:'',source:'',review:false,revision:0,attachment:'',attachmentName:''};}
